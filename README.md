@@ -95,7 +95,7 @@ class Main {
 
 ## Template arguments
 
-You can define a constructor that takes components as arguments. The macro will add the constructor's body, so you should leave it blank. (This is a temporary restriction and will be removed later.)
+You can define a constructor that takes components as arguments.
 
 ```haxe
 @:build(echoes.Template.build())
@@ -104,6 +104,7 @@ abstract Fighter(Entity) {
 	public var health:Health = 10;
 	public var sprite:Sprite;
 	
+	//You don't have to define a body; the macro will add it for you.
 	public function new(sprite:Sprite);
 }
 

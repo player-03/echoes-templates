@@ -93,7 +93,7 @@ class TemplateBuilder {
 				case "new", "_new":
 					constructor = field;
 				case "applyTemplateTo", "applyTemplateToSelf":
-					return Context.fatalError('${ field.name } is reserved. Instead, declare an onTemplateApplied() function.', field.pos);
+					return Context.fatalError('${ field.name } is reserved. Instead, add the code to the constructor or onTemplateApplied().', field.pos);
 				case "onTemplateApplied" if(field.kind.match(FFun(_.args => []))):
 					onTemplateApplied = true;
 				default:
@@ -159,13 +159,6 @@ class TemplateBuilder {
 					}
 					
 					parameters.push(arg);
-				}
-				
-				switch(f.expr) {
-					case null, macro { }:
-						//No problem.
-					default:
-						Context.warning("Constructor body will be ignored and replaced, remove it to disable this warning.", f.expr.pos);
 				}
 			default:
 				Context.fatalError("Expected function.", constructor.pos);
@@ -407,6 +400,28 @@ class TemplateBuilder {
 			}];
 			
 			applyToSelfExprs.push(macro @:privateAccess this.applyTemplateToSelf($a{ superArguments }));
+		}
+		if(constructor != null) {
+			var constructorExprs:Array<Expr> = switch(constructor.kind) {
+				case FFun(_.expr => null):
+					[];
+				case FFun(_.expr.expr => EBlock(exprs)):
+					exprs.pop(); //Haxe inserts a `return` statement.
+					exprs.shift(); //Haxe inserts a `this` declaration.
+					exprs;
+				default:
+					[];
+			};
+			
+			for(expr in constructorExprs) {
+				switch(expr) {
+					case macro this = $_, _.expr => ECall(macro super, _):
+						//Skip.
+					default:
+						true;
+						applyToSelfExprs.push(expr);
+				}
+			}
 		}
 		if(onTemplateApplied) {
 			applyToSelfExprs.push(macro onTemplateApplied());

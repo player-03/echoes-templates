@@ -73,6 +73,14 @@ class TemplateTest extends Test {
 		#end
 	}
 	
+	private function testConstructorCode():Void {
+		final entity:InheritingEntity = new InheritingEntity("");
+		Assert.isNull(entity.get(Color));
+		
+		final entity:InheritingEntity = new InheritingEntity("", true);
+		Assert.equals(VisualEntity.DEFAULT_COLOR, entity.get(Color));
+	}
+	
 	private function testInheritance():Void {
 		final entity:RequiredArgumentEntity = new RequiredArgumentEntity("abc");
 		Assert.equals("abc", entity.string);

@@ -209,6 +209,12 @@ class TemplateBuilder {
 				}
 			case _.kind => FFun(f):
 				for(arg in f.args) {
+					//Fully qualify the argument type so child templates can
+					//reference it, even if the user didn't import it.
+					if(arg.type != null) {
+						arg.type = arg.type.toType().toComplexType();
+					}
+					
 					parameters.push(arg);
 				}
 				

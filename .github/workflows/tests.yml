@@ -1,0 +1,28 @@
+name: CI
+
+on: [push, pull_request, workflow_dispatch]
+
+jobs:
+  run-tests:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        haxe-version: [4.2.5, 4.3.1]
+    
+    steps:
+      - uses: actions/checkout@v6
+      
+      - uses: krdlab/setup-haxe@v2
+        with:
+          haxe-version: ${{ matrix.haxe-version }}
+      
+      - run: |
+          haxelib install utest
+          haxelib install echoes
+      
+      - name: Run tests
+        run: haxe tests.hxml --interp
+      
+      - name: Run tests (map storage)
+        run: haxe tests.hxml --interp -D echoes_storage=Map

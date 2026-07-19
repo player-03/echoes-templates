@@ -1,0 +1,4 @@
+*.hxproj
+.vscode/
+bin/
+dump/

@@ -3,11 +3,9 @@ package echoes.macro;
 #if macro
 
 import haxe.Exception;
-import haxe.macro.ComplexTypeTools;
 import haxe.macro.Expr;
 import haxe.macro.Printer;
 import haxe.macro.Type;
-import haxe.macro.TypeTools;
 
 using echoes.macro.ComponentStorageBuilder;
 using echoes.macro.EntityTools;
@@ -22,9 +20,6 @@ using Lambda;
  * @see `echoes.Template.build()`
  */
 class TemplateBuilder {
-	static inline final ARGUMENTS_TAG:String = ":arguments";
-	static inline final OPTIONAL_ARGUMENTS_TAG:String = ":optionalArguments";
-	
 	/**
 	 * For each template, maps the template's fully-qualified type name (e.g.,
 	 * `com.pack.MyType` or `com.pack.MyType.SubType`) onto useful information
@@ -111,6 +106,13 @@ class TemplateBuilder {
 		//Constructor arguments
 		//---------------------
 		
+		//Check for the old format.
+		if(type.meta.has(":arguments") || type.meta.has(":optionalArguments")) {
+			Context.error("@:arguments and @:optionalArguments are no longer supported. "
+				+ "Instead, add a constructor that takes the arguments you need.",
+				Context.currentPos());
+		}
+		
 		/**
 		 * The immediate parent's build info.
 		 */
@@ -141,66 +143,7 @@ class TemplateBuilder {
 		final parameters:Array<FunctionArg> = [];
 		switch(constructor) {
 			case null:
-				var hasMeta:Bool = false;
-				for(meta in type.meta.get()) {
-					if(meta.name != ARGUMENTS_TAG && meta.name != OPTIONAL_ARGUMENTS_TAG
-						|| meta.params == null || meta.params.length == 0) {
-						continue;
-					}
-					
-					hasMeta = true;
-					
-					for(param in meta.params) {
-						var name:String;
-						var type:ComplexType;
-						switch(param.expr) {
-							case EParenthesis({ expr:ECheckType(_.expr => EConst(CIdent(n)), t) }):
-								name = n;
-								type = t.followComplexType();
-								
-								if(name == "_") {
-									name = type.toIdentifier(false);
-								}
-							default:
-								final fieldChain:Null<String> = param.printFieldChain();
-								if(fieldChain == null) {
-									Context.fatalError("Expected component type or type check.", param.pos);
-								}
-								
-								name = fieldChain.split(".").pop();
-								name = name.charAt(0).toLowerCase() + name.substr(1);
-								
-								try {
-									type = fieldChain.getType().followMono().toComplexType();
-								} catch(error:Exception) {
-									Context.fatalError('Could not find type $fieldChain. It might need to be imported, or there may have been an error when generating it. '
-										+ "Please declare your arguments using a constructor instead, and the compiler can provide more details.", Context.currentPos());
-								}
-						}
-						
-						parameters.push({
-							name: name,
-							type: type,
-							opt: meta.name == OPTIONAL_ARGUMENTS_TAG
-						});
-					}
-				}
-				
-				if(hasMeta) {
-					final sampleConstructor:Field = {
-						access: [APublic],
-						name: "new",
-						kind: FFun({
-							args: parameters,
-							expr: null
-						}),
-						pos: (macro _).pos
-					};
-					
-					Context.warning('@$ARGUMENTS_TAG and @$OPTIONAL_ARGUMENTS_TAG are deprecated. '
-						+ 'Instead, please add an empty constructor, such as `${ new Printer().printField(sampleConstructor) };`.',
-						Context.currentPos());
-				} else if(superInfo != null) {
+				if(superInfo != null) {
 					for(superParam in superInfo.parameters) {
 						if(!superParam.opt && superParam.value == null) {
 							parameters.push(superParam);

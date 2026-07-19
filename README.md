@@ -240,3 +240,76 @@ abstract Unit(Entity) {
 	}
 }
 ```
+
+## Using templates as components
+
+It's often useful to use a template as another entity's component, describing a specific relationship between them. For example, you could have a `Team` entity consisting of multiple `Unit`s, where each `Unit` stores its `Team` as a component.
+
+```haxe
+@:build(echoes.Template.build())
+abstract Unit(Entity) {
+	public var health:Health = 10;
+	
+	/**
+	 * This unit's team. This can be used to access details about the team, like
+	 * the name and color, as well as a full list of units on the team.
+	 */
+	public var team:Team;
+	
+	public function new(team:Team);
+}
+
+@:build(echoes.Template.build()) @:echoes_replace
+abstract Team(Entity) {
+	public var color:Color;
+	public var name:String;
+	
+	/**
+	 * All units on this team. `TeamSystem` automatically keeps this up to date.
+	 * Only `TeamSystem` should modify this, others should set `unit.team`.
+	 */
+	public var units:Array<Unit> = [];
+	
+	public function new(name:String, color:Color);
+}
+
+class TeamSystem extends System {
+	/**
+	 * Whenever a unit is assigned to a team, adds it to the team's `units`.
+	 */
+	@:add private function setTeam(team:Team, entity:Entity):Void {
+		final unit:Unit = cast entity;
+		if(!team.units.contains(unit)) {
+			team.units.push(unit);
+		}
+	}
+	
+	/**
+	 * Whenever a unit leaves a team, removes it from the team's `units`.
+	 */
+	//`@:echoes_replace` means that whenever someone sets `unit.team = value`,
+	//it will first dispatch a `@:remove` event, allowing cleanup.
+	@:remove private function unsetTeam(team:Team, entity:Entity):Void {
+		final unit:Unit = cast entity;
+		team.units.remove(unit);
+	}
+}
+```
+
+## Known issues
+
+When using automatic type conversion, some targets (C++, at least) will coerce `null` to `0`. `0` is then treated as a reference to the first entity to have been created.
+
+```haxe
+final unit0:Null<Unit> = new Unit(15);
+trace(unit0); //0
+trace(unit0.get(Health)); //15
+
+final unit1:Null<Unit> = null;
+trace(unit1); //null
+//trace(unit1.get(Health)); //Null error
+
+final entity:Null<Entity> = unit;
+trace(entity); //0
+trace(entity.get(Health)); //15
+```

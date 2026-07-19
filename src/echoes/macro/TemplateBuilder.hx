@@ -187,12 +187,8 @@ class TemplateBuilder {
 			final name:String = "to" + parent.abstractType.name;
 			final parentType:ComplexType = parent.complexType;
 			fields.pushFields(macro class ToParent {
-				/**
-				 * Caution: in C++, this converts `null` to `0`. Specifically,
-				 * it generates the code `(int) entity` instead of `entity`.
-				 * Tweaks like `Null<$parentType>` have no effect on this
-				 * generated code.
-				 */
+				//Known issue: in C++, this generates the code `(int) entity`,
+				//coercing null to 0. `Null<$parentType>` makes no difference.
 				@:to private inline function $name():$parentType {
 					return this;
 				}

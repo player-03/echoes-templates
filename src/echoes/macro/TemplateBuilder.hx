@@ -423,9 +423,8 @@ class TemplateBuilder {
 		
 		final removeFromSelfExprs:Array<Expr> = [];
 		for(component in components) {
-			//TODO: communicate that `remove` is reserved.
-			final type:ComplexType = component.type;
-			removeFromSelfExprs.push(macro this.remove((_:$type)));
+			final storage:Expr = component.type.getComponentStorage();
+			removeFromSelfExprs.push(macro $storage.remove(this));
 		}
 		if(parents.length > 1) {
 			removeFromSelfExprs.push(macro if(recursive) @:privateAccess this.removeTemplateFromSelf(true));

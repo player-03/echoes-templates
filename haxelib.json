@@ -1,0 +1,11 @@
+{
+  "name": "echoes-templates",
+  "url" : "https://github.com/player-03/echoes-templates",
+  "license": "MIT",
+  "tags": [ "entity", "component", "system", "ecs" ],
+  "description": "Adds entity templates to Echoes.",
+  "version": "1.0.0",
+  "classPath": "src/",
+  "releasenote": "Initial release.",
+  "contributors": [ "player_03" ]
+}

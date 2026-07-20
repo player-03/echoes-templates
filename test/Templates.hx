@@ -49,9 +49,12 @@ abstract VisualEntity(Entity) {
 	public static inline final DEFAULT_SHAPE:Shape = SQUARE;
 	
 	public var color:Color = DEFAULT_COLOR;
+	public var invertedColor:InvertedColor = 0xFFFFFF ^ color;
 	public var shape = Shape.CIRCLE;
 	
 	private inline function onTemplateApplied():Void {
 		shape = DEFAULT_SHAPE;
 	}
+	
+	public inline function new(?color:Color);
 }

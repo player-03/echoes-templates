@@ -79,6 +79,7 @@ class TemplateTest extends Test {
 		
 		final entity:InheritingEntity = new InheritingEntity("", true);
 		Assert.equals(VisualEntity.DEFAULT_COLOR, entity.get(Color));
+		Assert.equals(0xFFFFFF ^ VisualEntity.DEFAULT_COLOR, entity.get(InvertedColor));
 	}
 	
 	private function testInheritance():Void {
@@ -89,7 +90,7 @@ class TemplateTest extends Test {
 			"abc", "xyz", (0xFFFFFF:Color));
 		Assert.equals("xyz", entity.string);
 		Assert.equals("abc", entity.stringTypedef);
-		Assert.equals(0xFFFFFF, entity.get(Color));
+		Assert.isNull(entity.get(Color));
 		
 		final entity:OptionalRequiredArgumentEntity = new OptionalRequiredArgumentEntity(
 			null, "xyz");
@@ -100,5 +101,6 @@ class TemplateTest extends Test {
 		final entity:InheritingEntity = new InheritingEntity("string");
 		Assert.equals("string", entity.string);
 		Assert.equals("default", entity.stringTypedef);
+		Assert.isNull(entity.get(Bool));
 	}
 }

@@ -195,6 +195,24 @@ class TemplateBuilder {
 			});
 		}
 		
+		/**
+		 * Adds `abstract.` in front of any reference to a constructor argument,
+		 * so the field is accessed instead.
+		 */
+		function replaceParameterReferences(expr:Expr):Expr {
+			switch(expr.expr) {
+				case EConst(CIdent(identifier)):
+					for(param in parameters) {
+						if(param.name == identifier) {
+							return macro @:pos(expr.pos) abstract.$identifier;
+						}
+					}
+					return expr;
+				default:
+					return expr.map(replaceParameterReferences);
+			}
+		}
+		
 		//Process the component fields.
 		final components:Array<FunctionArg> = [];
 		for(field in fields) {
@@ -213,6 +231,9 @@ class TemplateBuilder {
 				case FVar(t, e):
 					componentType = t;
 					expr = e;
+					if(expr != null && expr.expr.match(EConst(CIdent("null")))) {
+						expr = null;
+					}
 				default:
 					continue;
 			}
@@ -235,26 +256,35 @@ class TemplateBuilder {
 				componentType = componentType.toType().toComplexType();
 			}
 			
-			//Record the initial/default value.
+			//Don't let `expr` refer to any constructor parameters.
 			if(expr != null) {
-				components.push({
-					name: switch(componentType) {
-						case TPath({ name: name, sub: null }):
-							name;
-						case TPath({ sub: sub }):
-							sub;
-						default:
-							new Printer().printComplexType(componentType);
-					},
-					type: componentType,
-					value: switch(expr) {
-						case macro null:
-							null;
-						default:
-							macro @:pos(expr.pos) ($expr:$componentType);
-					}
-				});
+				expr = expr.map(replaceParameterReferences);
 			}
+			
+			//Make `expr` refer to the matching constructor parameter, if any.
+			final storage:String = componentType.getComponentStorageName();
+			final parameterIndex:Int = parameterStorage.indexOf(storage);
+			final parameter:FunctionArg = parameterIndex >= 0 ? parameters[parameterIndex] : null;
+			if(parameter != null) {
+				if(expr == null) {
+					expr = macro $i{ parameter.name };
+				} else if(parameter.value != null) {
+					final printer:Printer = new Printer();
+					if(printer.printExpr(expr) != printer.printExpr(parameter.value)) {
+						Context.warning("This will be ignored because the constructor defines its own default value.", expr.pos);
+					}
+					expr = macro $i{ parameter.name };
+				} else {
+					expr = macro $i{ parameter.name } != null ? $i{ parameter.name } : $expr;
+				}
+			}
+			
+			//Save the component.
+			components.push({
+				name: field.name,
+				type: componentType,
+				value: expr
+			});
 			
 			//Check for reserved types.
 			switch(componentType) {
@@ -281,49 +311,6 @@ class TemplateBuilder {
 					return value;
 				}
 			});
-		}
-		
-		/**
-		 * The number of components that were defined by a field. Everything in
-		 * `components` at or after this index was instead defined by a
-		 * constructor argument.
-		 */
-		final componentFields:Int = components.length;
-		
-		//Look for matches between `parameters` and `components`, and add any
-		//missing values to the latter.
-		{
-			final componentStorage:Array<String> = [for(component in components)
-				component.type.getComponentStorageName()];
-			
-			final printer:Printer = new Printer();
-			for(i => parameter in parameters) {
-				final componentIndex:Int = componentStorage.indexOf(parameterStorage[i]);
-				if(componentIndex < 0) {
-					components.push(parameter);
-					continue;
-				}
-				
-				final component:FunctionArg = components[componentIndex];
-				if(component.value != null && parameter.value != null) {
-					final componentValue:String = printer.printExpr(switch(component.value) {
-						case macro ($componentValue:$_):
-							componentValue;
-						default:
-							component.value;
-					});
-					
-					final parameterValue:String = printer.printExpr(parameter.value);
-					if(componentValue != parameterValue) {
-						Context.warning('This default value will be ignored, because the constructor declares a default value of ${ parameterValue }.', component.value.pos);
-					}
-					
-					//`component.value` isn't used anywhere other than the
-					//constructor and `applyTemplateToSelf()`, and since
-					//`parameter.value` is also defined, it's fully redundant.
-					component.value = null;
-				}
-			}
 		}
 		
 		//"Apply" functions
@@ -369,13 +356,10 @@ class TemplateBuilder {
 		//order of priority: values passed by the user, then known values, then
 		//inherited values.
 		final applyToSelfExprs:Array<Expr> = [];
-		for(parameter in parameters) {
-			applyToSelfExprs.push(macro this.addIfMissing($i{ parameter.name }));
-		}
-		for(i in 0...componentFields) {
-			final component:FunctionArg = components[i];
+		for(component in components) {
 			if(component.value != null) {
-				applyToSelfExprs.push(macro this.addIfMissing(${ component.value }));
+				final componentType:ComplexType = component.type;
+				applyToSelfExprs.push(macro this.addIfMissing(@:pos(component.value.pos) (${ component.value }:$componentType)));
 			}
 		}
 		if(superInfo != null) {

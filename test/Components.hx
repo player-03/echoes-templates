@@ -6,6 +6,8 @@ abstract Color(Int) from Int to Int {
 	}
 }
 
+typedef InvertedColor = Color;
+
 @:echoes_replace
 typedef Name = String;
 

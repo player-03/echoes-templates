@@ -9,7 +9,7 @@ To install Echoes-templates, run `haxelib install echoes-templates` or `haxelib 
 If you're switching from Echoes' built-in entity templates, make the following changes:
 
 - Find "@:build(echoes.Entity.build())", and replace it with "@:build(echoes.Template.build())".
-- Find "@:arguments" and "@:optionalArguments", and replace them with [constructors](#Template arguments). For instance, if a template has `@:arguments(Foo) @:optionalArguments(Bar)`, delete both and add `public function new(foo:Foo, ?bar:Bar);`.
+- Find "@:arguments" and "@:optionalArguments", and replace them with [constructors](#template-arguments). For instance, if a template has `@:arguments(Foo) @:optionalArguments(Bar)`, delete both and add `public function new(foo:Foo, ?bar:Bar);`.
 
 ## Entity templates
 

@@ -7,5 +7,8 @@
   "version": "1.0.1",
   "classPath": "src/",
   "releasenote": "Fix constructor bugs.",
-  "contributors": [ "player_03" ]
+  "contributors": [ "player_03" ],
+  "dependencies": {
+  	"echoes": ""
+  }
 }

@@ -3,7 +3,6 @@ package;
 import Components;
 import echoes.Entity;
 import echoes.System;
-import haxe.extern.EitherType;
 import MethodCounter;
 
 using StringTools;
@@ -22,27 +21,6 @@ class AppearanceSystem extends System implements IMethodCounter {
 	@:removed private function colorAndShapeRemoved(shape:Shape, color:Color):Void {}
 }
 
-@:genericBuild(echoes.macro.SystemBuilder.genericBuild())
-class GenericSystem<S:String, F:EitherType<Float, String>> extends System {
-	public var record:Array<S>;
-	
-	@:add private function onAdded(s:S, f:F, ?record:Array<S>, entity:Entity):Void {
-		if(record == null) {
-			this.record = record = new Array<S>();
-			entity.add(record);
-		}
-		
-		record.push(s.toLowerCase() + f);
-	}
-}
-
-@:priority(1)
-class HighPrioritySystem extends System {
-	public function new();
-	
-	@:update private function update():Void {}
-}
-
 class NameSystem extends System implements IMethodCounter {
 	@:add private function nameAdded(name:Name):Void {}
 	@:update private function nameUpdated(name:Name):Void {}
@@ -50,54 +28,5 @@ class NameSystem extends System implements IMethodCounter {
 		if(entity.exists(Name) && name != entity.get(Name)) {
 			MethodCounter.count("NameSystem.nameReplaced");
 		}
-	}
-}
-
-class OptionalComponentSystem extends System implements IMethodCounter {
-	@:add private inline function colorAndNameAdded(color:Color, ?shape:Shape, name:Name):Void {}
-	@:update private inline function colorAndNameUpdated(color:Color, ?shape:Shape, name:Name):Void {}
-	@:remove private inline function colorAndNameRemoved(color:Color, ?shape:Shape, name:Name):Void {}
-}
-
-class TimeCountSystem extends System implements IMethodCounter {
-	public var colorTime:Float = 0;
-	public var shapeTime:Float = 0;
-	public var colorAndShapeTime:Float = 0;
-	public var totalTime:Float = 0;
-	
-	@:update private function colorUpdated(color:Color, time:Float):Void {
-		colorTime += time;
-	}
-	
-	@:update private function shapeUpdated(shape:Shape, time:Float):Void {
-		shapeTime += time;
-	}
-	
-	@:update private function colorAndShapeUpdated(color:Color, shape:Shape, time:Float):Void {
-		colorAndShapeTime += time;
-	}
-	
-	@:update private function update(time:Float):Void {
-		totalTime += time;
-	}
-}
-
-class UpdateOrderSystem extends System {
-	private static final CONSTANT:Int = 5;
-	
-	@:update @:priority(CONSTANT - 6) private function post_update(order:Array<String>):Void {
-		order.push("post_update");
-	}
-	
-	@:update private function update(order:Array<String>):Void {
-		order.push("update");
-	}
-	
-	@:update @:priority(1) private function pre_update(order:Array<String>):Void {
-		order.push("pre_update");
-	}
-	
-	@:update private function update2(order:Array<String>):Void {
-		order.push("update2");
 	}
 }

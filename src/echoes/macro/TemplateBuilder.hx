@@ -265,7 +265,12 @@ class TemplateBuilder {
 			final storage:String = componentType.getComponentStorageName();
 			final parameterIndex:Int = parameterStorage.indexOf(storage);
 			final parameter:FunctionArg = parameterIndex >= 0 ? parameters[parameterIndex] : null;
+			var canBeNull:Bool = expr == null || expr.expr.match(EConst(CIdent("null")));
 			if(parameter != null) {
+				canBeNull = parameter.value != null
+					? parameter.value.expr.match(EConst(CIdent("null")))
+					: (parameter.opt || parameter.type != null && (parameter.type.match(macro:Null<$_>) || parameter.type.match(macro:StdTypes.Null<$_>)));
+				
 				if(expr == null) {
 					expr = macro $i{ parameter.name };
 				} else if(parameter.value != null) {
@@ -283,7 +288,8 @@ class TemplateBuilder {
 			components.push({
 				name: field.name,
 				type: componentType,
-				value: expr
+				value: expr,
+				opt: canBeNull
 			});
 			
 			//Check for reserved types.
@@ -358,7 +364,11 @@ class TemplateBuilder {
 		final applyToSelfExprs:Array<Expr> = [];
 		for(component in components) {
 			if(component.value != null) {
-				final componentType:ComplexType = component.type;
+				var componentType:ComplexType = component.type;
+				if(component.opt) {
+					//Avoid coercing null to 0 on some targets.
+					componentType = macro:Null<$componentType>;
+				}
 				applyToSelfExprs.push(macro this.addIfMissing(@:pos(component.value.pos) (${ component.value }:$componentType)));
 			}
 		}
